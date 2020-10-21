@@ -64,15 +64,6 @@ class CalibratonViewer(object):
             self.cylindrical_image_stitchers[topic] = cylindrical_image_stitcher.CylindricalImageStitcher(
                 Tr_cam_to_imu, projection_matrix, src_shape, cylindrical_dst_shape)
 
-            # TODO we should make every lidar calib have Tr_lidar_to_imu
-            # for sidelidar one, it only contain Tr_side_to_cener instead of Tr_lidar_to_imu
-            self.main_lidar_calib = None
-            for topic in lidar_calibs:
-                lidar_calib = lidar_calibs[topic]
-                if lidar_calib.type == 'lidar':
-                    self.main_lidar_calib = lidar_calib
-                break
-
     def load_messages(self, cam_messages, lidar_messages, radar_messages):
 
         # load all images
@@ -124,6 +115,11 @@ class CalibratonViewer(object):
         for topic in images:
             image = images[topic]
             cam_calib = self.cam_calibs[topic]
+            print(topic,cam_calib.upside_down)
+            if cam_calib.upside_down == 1:
+                image = cv2.flip(image, 0)
+                #cv2.imshow('show', image)
+                #cv2.waitKey(0)
             rect_images[topic] = cam_calib.rectify(image)
         return rect_images
 
@@ -136,16 +132,7 @@ class CalibratonViewer(object):
             for lidar_topic in pointclouds:
                 pointcloud = pointclouds[lidar_topic]
                 lidar_calib = self.lidar_calibs[lidar_topic]
-                if self.main_lidar_calib:
-                    if lidar_calib.type == 'sidelidar':
-                        Tr_lidar_to_imu = self.main_lidar_calib.Tr_lidar_to_imu.dot(
-                            lidar_calib.Tr_side_to_center)
-                    else:
-                        Tr_lidar_to_imu = lidar_calib.Tr_lidar_to_imu
-                else:
-                    print('We should give at least one lidar calib file having Tr_lidar_to_imu!')
-                    return
-
+                Tr_lidar_to_imu = lidar_calib.Tr_lidar_to_imu
                 Tr_lidar_to_cam = cam_calib.Tr_imu_to_cam.dot(Tr_lidar_to_imu)
 
                 cloud_data = pointcloud.pc_data
@@ -305,16 +292,8 @@ class CalibratonViewer(object):
         lidar_index = 0
         for lidar_topic in pointclouds:
             pc = pointclouds[lidar_topic]
-            if self.main_lidar_calib:
-                lidar_calib = self.lidar_calibs[lidar_topic]
-                if lidar_calib.type == 'sidelidar':
-                    Tr_lidar_to_imu = self.main_lidar_calib.Tr_lidar_to_imu.dot(
-                        lidar_calib.Tr_side_to_center)
-                else:
-                    Tr_lidar_to_imu = lidar_calib.Tr_lidar_to_imu
-            else:
-                print('We should give at least one lidar calib file having Tr_lidar_to_imu!')
-                return
+            lidar_calib = self.lidar_calibs[lidar_topic]
+            Tr_lidar_to_imu = lidar_calib.Tr_lidar_to_imu
 
             cloud_data = pc.pc_data
             xyz_data = np.array([[data[0], data[1], data[2]] for data in cloud_data])
@@ -330,6 +309,7 @@ class CalibratonViewer(object):
 
     def draw_radar_in_topdown_view(self, all_radar_tracks, plot_ax):
         radar_index = 0
+
         for topic in all_radar_tracks:
             radar_tracks = all_radar_tracks[topic]
             radar_calib = self.radar_calibs[topic]
@@ -350,7 +330,7 @@ class CalibratonViewer(object):
             velocity_data_imu = project_points.transform_vector(Tr_radar_to_imu, np.array(velocity_data))
             if xyz_data_imu.any():
                 plot_ax.scatter(xyz_data_imu[:, 0], xyz_data_imu[:, 1], color=color_rgb,
-                                marker='+', s=20.0, alpha=1.0, label=topic)
+                                marker='+', s=20.0, alpha=0.8, label=topic)
                 plot_ax.quiver(xyz_data_imu[:, 0], xyz_data_imu[:, 1], velocity_data_imu[:, 0], velocity_data_imu[:, 1], color=color_rgb)
 
             radar_index += 1
@@ -361,9 +341,9 @@ class CalibratonViewer(object):
         self.draw_radar_in_topdown_view(radar_tracks, bird_eye_ax)
 
         bird_eye_ax.set_xlim((-100, 200))
-        bird_eye_ax.set_ylim((-100, 100))
+        bird_eye_ax.set_ylim((-60, 60))
         bird_eye_ax.set_xticks(np.arange(-100, 200, step=10))
-        bird_eye_ax.set_yticks(np.arange(-100, 100, step=10))
+        bird_eye_ax.set_yticks(np.arange(-60, 60, step=5))
         bird_eye_ax.tick_params(axis='both', which='major', labelsize=7)
         bird_eye_ax.set_xlabel('x(meter)', fontsize=10)
         bird_eye_ax.set_ylabel('y(meter)', fontsize=10)
@@ -444,6 +424,10 @@ if __name__ == '__main__':
                         help="max gap to allow between message pairs")
     parser.add_argument("--cam_topics", type=str, metavar='cam_topic', nargs='+',
                         help="camera topics, split by comma or space", default="/front_left_camera/image_color/compressed")
+    parser.add_argument("--stereo_topics", type=str, metavar='stereo_topic', nargs=2,
+                        help="stereo topics, split by space", default=[])
+    parser.add_argument("--stereo_calib", type=str, metavar='mono_cam_calib',
+                        nargs=1, help="stereo calibration file")
     parser.add_argument("--cam_calibs", type=str, metavar='mono_cam_calib',
                         nargs='+', help="camera calibration files, split by space")
     parser.add_argument("--lidar_topics", type=str, metavar='lidar_topic',
@@ -496,15 +480,20 @@ if __name__ == '__main__':
     all_topics += [topic for topic in lidar_calibs]
     all_topics += [topic for topic in radar_calibs]
 
-    calib_viewer = CalibratonViewer(cam_calibs, lidar_calibs, radar_calibs, args.output_dir)
 
     ros_bags = load_bag.load_rosbags_from_files(args.bags)
+    missing_topic = False
     for topic in all_topics:
         if not load_bag.check_topic_exist_in_bag(ros_bags[0], topic):
-            print('Topic: %s is not in the bag' % topic)
-            sys.exit()
+            missing_topic = True
+    
+    if missing_topic:
+        sys.exit(1)
+    
+    calib_viewer = CalibratonViewer(cam_calibs, lidar_calibs, radar_calibs, args.output_dir)
+    
     bag_it = load_bag.buffered_message_generator(ros_bags, all_topics, args.tolerance)
-
+    
     prev_frame_number = -1
     start_time = None
     for frame in bag_it:

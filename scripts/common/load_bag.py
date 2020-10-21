@@ -1,5 +1,8 @@
 import rosbag
 import difflib
+import fastbag
+from munch import Munch
+import os
 
 
 def buffered_message_generator(bags, topics, tolerance):
@@ -11,12 +14,17 @@ def buffered_message_generator(bags, topics, tolerance):
         topic_skips[topic] = 0
         topic_counts[topic] = 0
     for b in bags:
-        for m in b.read_messages(topics=topics):
+        for topic, msg, timestamp in b.read_messages(topics=topics):
+            m = Munch()
+            m.topic = topic
+            m.message = msg
+            m.timestamp = timestamp
             if 'perception' in m.topic:
                 # would need to parse the proto...
                 current_timestamp = m.timestamp.to_sec()
             else:
                 current_timestamp = m.message.header.stamp.to_sec()
+                current_timestamp = m.timestamp.to_sec()
             topic_queues[m.topic].append((current_timestamp, m))
             topic_counts[m.topic] += 1
 
@@ -48,11 +56,21 @@ def buffered_message_generator(bags, topics, tolerance):
 
 
 def load_rosbags_from_files(bag_files):
-    return [rosbag.Bag(b) for b in bag_files]
+    bags = []
+    for bag_file in bag_files:
+        if os.path.splitext(bag_file)[1] == '.db':
+            bag = fastbag.Reader(bag_file)
+            bag.open()
+        elif os.path.splitext(bag_file)[1] == '.bag':
+            bag = rosbag.Bag(bag_file)
+        else:
+            raise RuntimeError
+        bags.append(bag)
+    return bags
 
 
 def check_topic_exist_in_bag(ros_bag, topic):
-    topics = ros_bag.get_type_and_topic_info()[1].keys()
+    topics = ros_bag.get_type_and_topic_info().topics.keys()
 
     if topic in topics:
         return True
