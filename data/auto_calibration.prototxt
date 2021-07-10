@@ -1,0 +1,31 @@
+stereo_calibrator_param {
+    stereo_calibration_param {
+        max_err: 1000
+        akaze_thresh: 0.00001
+        max_keypoints_per_frame: 8000
+    }
+    data_selection_param {
+        yaw_threshold_in_deg: 10.0
+        velocity_threshold_in_ms: 0.0
+        min_interval_in_sec: 0.2
+        frame_number_per_calibration: 10
+    }
+    min_calibration_number: 1
+}
+
+mono_calibrator_param {
+    mono_calibration_param {
+        fitting_error: 500.
+        mean_fitting_error: 0.5
+        pts_on_lane_max_mean_diff: 20
+        min_lane_points: 200
+        max_optimize_distance: 40
+        front_lane_num: 10
+    }
+    data_selection_param {
+        yaw_threshold_in_deg: 1.0
+        velocity_threshold_in_ms: 20.0
+        min_interval_in_sec: 0.1
+        frame_number_per_calibration: 10
+    }
+}
