@@ -1,9 +1,0 @@
-setuptools<45
-pandas==0.24.2
-numpy==1.16.3
-pluspy
-stopclock
-six
-munch
-unittest2
-pytest
