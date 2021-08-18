@@ -1,6 +1,6 @@
 parent_dir:
     # you need to change this directory 
-    - /home/peterchang/work/data/benchmark-bags/general/
+    - ~/work/data/benchmark-bags/fastandstraight_bags_front_radar_and_odom/
 
 #the data table, in order to get car name and date, I use the bag name as the directory name
 bag_dirs:

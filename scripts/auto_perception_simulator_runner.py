@@ -32,6 +32,7 @@ def main():
     file_utils.safe_make_dir(args.output_dir)
     for data in data_list:
         temp_dir = tempfile.mkdtemp()
+        print(temp_dir)
         bag = load_rosbag_from_file(data.bag_file)
         topics = " ".join(bag.get_type_and_topic_info().topics.keys())
         # print(topics)
@@ -113,7 +114,8 @@ def main():
             '--logger_log_verbosity_level', '5',
             '--logger_enable_log_levels=all',
             '--logger_enable_log_levels=all,warning,error,catastrophe,assert_failure,info',
-            '--logger_log_directory', temp_dir]
+            '--logger_log_directory', temp_dir,
+            '--out_dataset_path', "dataset"]
             #print(" ".join(cmd))
             #exit(0)
             out = subprocess.check_output(cmd, env=env)
@@ -126,7 +128,7 @@ def main():
                 if result is not None:
                     # move file to temp dir
 					old_name = os.path.join(roots,file)
-					#print(old_name)
+					# print(old_name)
 					new_name = os.path.join(args.output_dir, data.bag_basename + "_" + result)
 					shutil.move(old_name, new_name)
 		#shutil.rmtree(temp_dir, ignore_errors=True)

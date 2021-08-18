@@ -1,16 +1,16 @@
 parent_dir:
-    - /home/peterchang/work/data/benchmark-bags/general
+    - ~/work/data/benchmark-bags/fastandstraight_bags_front_radar_and_odom/
 
 bag_dirs:
     - bag: 20201112T102738_j7-l4e-00011_11_83to103.db
-#    - bag: 20201124T151221_j7-l4e-00011_27_0to20.db
-#    - bag: 20201109T152801_j7-l4e-00011_32_11to31.db
-#    - bag: 20210319T192702_paccar-amazonph2-1XKYDP9X9LJ407494_k0002dm_1_544to547.db
-#    - bag: 20201112T160611_paccar-k002dc_1_0to15.partial_lead_3.db
-#    - bag: 20200103T160657_paccar-k001dm_5.20.000-45.000.db
-#      car: paccar-k001dm
-#    - bag: 20200103T160657_paccar-k001dm_3.280.000-290.000.db
-#      car: paccar-k001dm
-#    - bag: 20200103T160657_paccar-k001dm_3.300.000-324.000.db
-#      car: paccar-k001dm
-#    - bag: 20200921T064044_paccar-p004sc_25_163to169_full_gray_bag.db
+    - bag: 20201124T151221_j7-l4e-00011_27_0to20.db
+    - bag: 20201109T152801_j7-l4e-00011_32_11to31.db
+    - bag: 20210319T192702_paccar-amazonph2-1XKYDP9X9LJ407494_k0002dm_1_544to547.db
+    - bag: 20201112T160611_paccar-k002dc_1_0to15.partial_lead_3.db
+    - bag: 20200103T160657_paccar-k001dm_5.20.000-45.000.db
+      car: paccar-k001dm
+    - bag: 20200103T160657_paccar-k001dm_3.280.000-290.000.db
+      car: paccar-k001dm
+    - bag: 20200103T160657_paccar-k001dm_3.300.000-324.000.db
+      car: paccar-k001dm
+    - bag: 20200921T064044_paccar-p004sc_25_163to169_full_gray_bag.db

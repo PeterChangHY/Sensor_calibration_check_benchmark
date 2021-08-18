@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 import shutil
 
-import utils 
+import utils
 BUILD = "relwithdebinfo"
 
 
@@ -35,16 +35,18 @@ def main():
     cam_to_imu_fail_count = 0
     unknown_fail_count = 0
     file_utils.safe_make_dir(args.output_dir)
-    f_result = open(os.path.join(args.output_dir,'run_result.tsv'), 'w')
+    f_result = open(os.path.join(args.output_dir, 'run_result.tsv'), 'w')
     for data in data_list:
         tmp_dir = tempfile.mkdtemp()
         out = None
+        problem_file = data.bag_file + "/stereo_auto_calibration_problem.txt"
         try:
             cmd = ['{WORKSPACE}/build/{BUILD}/bin/auto_calibration_simulator'.format(WORKSPACE=args.work_space, BUILD=BUILD),
-                '--problem', data.bag_file + "/stereo_auto_calibration_problem.txt",
-                '--problem_parent_dir',os.path.dirname(data.problem_file),
+                '--problem', problem_file,
+                '--problem_parent_dir', data.bag_file,
                 '--bag_file', data.bag_file,
                 '--log_dir', "./",
+                '--logger_default_log_destinations', "./",
                 '--car', data.car,
                 '--calib_dir', args.calib_dir,
                 '--calib_date', data.bag_date,
@@ -56,11 +58,13 @@ def main():
                 '--alsologtostderr',
                 '-v=5']
             out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, cwd=tmp_dir)
-            # the following will print out the stderr 
-            #out = subprocess.check_output(cmd,stderr=None, cwd=tmp_dir)
+            # the following will print out the stderr
+            #out = subprocess.check_output(cmd, stderr=None, cwd=tmp_dir)
         except subprocess.CalledProcessError as e:
             #print("Process return ",e.returncode)
             #print("cmd", " ".join(e.cmd))
+            with open(os.path.join(args.output_dir, data.bag_basename + ".txt"), 'w') as fout:
+                fout.write(e.output)
             if "failed to register snapshot" in e.output:
                 register_fail_count = register_fail_count + 1
                 f_result.write("{}\t failed to register snapshot\n".format(data.bag_file))
@@ -71,30 +75,32 @@ def main():
                 two_view_fail_count = two_view_fail_count + 1
                 f_result.write("{}\t failed to add first snapshot\n".format(data.bag_file))
             elif "fail to create new cam to imu transform" in e.output:
-                cam_to_imu_fail_count = cam_to_imu_fail_count +1
+                cam_to_imu_fail_count = cam_to_imu_fail_count + 1
                 f_result.write("{}\t fail to create new cam to imu transform\n".format(data.bag_file))
             else:
                 unknown_fail_count = unknown_fail_count + 1
                 f_result.write("{}\t unknown failure\n".format(data.bag_file))
             continue
-        
+
         success_count = success_count + 1
         f_result.write("{}\t success\n".format(data.bag_file))
 
         for roots, dirs, files in os.walk(tmp_dir):
 
             for file in files:
+                #print(file)
                 if ".yml" == os.path.splitext(file)[1]:
-                    old_name = os.path.join(roots,file)
-                    new_name = os.path.join(args.output_dir,file)
+                    old_name = os.path.join(roots, file)
+                    new_name = os.path.join(args.output_dir, file)
                     shutil.move(old_name, new_name)
-        
-        old_name = data.problem_file + ".tsv"
-        new_name = os.path.join(args.output_dir, "{}_{}".format(os.path.basename(data.bag_file),'stereoCalibratorReport.tsv'))
+
+        old_name = problem_file + ".tsv"
+        new_name = os.path.join(args.output_dir, "{}_{}".format(os.path.basename(data.bag_file), 'stereoCalibratorReport.tsv'))
         shutil.move(old_name, new_name)
     f_result.close()
     print("Successfully ran {} / {} auto_calibration".format(success_count, len(data_list)))
-    print("too_few_ground_count: {}, two_view_fail_count: {}, register_fail_count: {}, cam_to_imu_fail_count: {}, unknown_fail_count: {}".format(too_few_ground_count,two_view_fail_count,register_fail_count,cam_to_imu_fail_count, unknown_fail_count))
+    print("too_few_ground_count: {}, two_view_fail_count: {}, register_fail_count: {}, cam_to_imu_fail_count: {}, unknown_fail_count: {}".format(too_few_ground_count, two_view_fail_count, register_fail_count, cam_to_imu_fail_count, unknown_fail_count))
+
 
 if __name__ == '__main__':
     main()
